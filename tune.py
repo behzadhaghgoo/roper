@@ -4,8 +4,10 @@ from __future__ import print_function
 
 import random
 import ray
-from ray.tune import run, sample_from
+from ray.tune import run, Trainable, sample_from
 from ray.tune.schedulers import PopulationBasedTraining
+
+from runexp import MyTrainable
 
 if __name__ == "__main__":
 
@@ -18,7 +20,7 @@ if __name__ == "__main__":
         # Specifies the mutations of these hyperparams
         hyperparam_mutations={
             "method": ['our', 'PER'],
-            "return_latent":['state', 'first_hidden', 'second_hidden', 'last']
+            "return_latent":['state', 'first_hidden', 'second_hidden', 'last'],
             "var": [.3, 1., 3., 10.],
             "mean": [0.],
             "decision_eps": [1.],
@@ -29,7 +31,7 @@ if __name__ == "__main__":
         })
 
 	ray.init()
-    run(
+	run(
         MyTrainable,
         name="roper_test_0",
         scheduler=pbt,
@@ -47,7 +49,6 @@ if __name__ == "__main__":
             	"theta" : [1.],
 	            "cnn": False,
 	            "invert_actions" : False,
-	            "num_frames"  30000,
 	            "num_val_trials" : 10,
 	            "batch_size" : 32,
 	            "gamma" : 0.99,
@@ -58,7 +59,7 @@ if __name__ == "__main__":
                 "num_workers": 0,
                 "num_gpus": 0,
                 # These params are tuned from a fixed starting value.
-                "lr": 1e-4,
+                "lr": 1e-4
                 # These params start off randomly drawn from a set.
             },
         })

@@ -4,11 +4,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.autograd as autograd
-from .utils import Variable
 
 '''
 Contains DQN and CNN-DQN classes
 '''
+Variable = lambda *args, **kwargs: autograd.Variable(*args, **kwargs).cuda() if USE_CUDA else autograd.Variable(*args, **kwargs)
+USE_CUDA = torch.cuda.is_available()
 
 class DQN(nn.Module):
     def __init__(self, num_inputs, num_actions):
