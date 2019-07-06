@@ -19,7 +19,7 @@ class DQN(nn.Module):
         self.fc3 = nn.Linear(128, num_actions)
         self.num_actions = num_actions
 
-    def forward(self, x, return_latent = 'last'):
+    def forward(self, x, return_latent = 'second_hidden'):
         """Args:
         	 return_latent: 'last': return last hidden vector
            								'state': return the state
@@ -38,7 +38,7 @@ class DQN(nn.Module):
         	return out, hidden2 
 
         else:
-        	print("Unrecognized return_latent argument")
+        	print("Unrecognized return_latent argument: {}".format(return_latent))
 
 
     def act(self, state, epsilon):
@@ -85,24 +85,24 @@ class Flatten(nn.Module):
 #         print(x.shape)
 #         hidden = self.features(x)
 #         print(hidden.shape)
-        out = self.fc(out)
-        if return_latent == "state":
-            return out, x
-        return out, hidden
+#         out = self.fc(out)
+#         if return_latent == "state":
+#             return out, x
+#         return out, hidden
     
-    # H, W, 3
-    def feature_size(self):
-        return np.prod(self.input_shape)
-        #return self.features(autograd.Variable(torch.zeros(1, *self.input_shape))).view(1, -1).size(1)
+#     # H, W, 3
+#     def feature_size(self):
+#         return np.prod(self.input_shape)
+#         #return self.features(autograd.Variable(torch.zeros(1, *self.input_shape))).view(1, -1).size(1)
     
-    def act(self, state, epsilon):
-        if random.random() > epsilon:
-            state   = Variable(torch.FloatTensor(np.float32(state)).unsqueeze(0), volatile=True)
-            q_value = self.forward(state)
-            action  = q_value.max(1)[1].data[0]
-        else:
-            action = random.randrange(self.num_actions)
-        return action
+#     def act(self, state, epsilon):
+#         if random.random() > epsilon:
+#             state   = Variable(torch.FloatTensor(np.float32(state)).unsqueeze(0), volatile=True)
+#             q_value = self.forward(state)
+#             action  = q_value.max(1)[1].data[0]
+#         else:
+#             action = random.randrange(self.num_actions)
+#         return action
 
 
 def update_target(current_model, target_model):

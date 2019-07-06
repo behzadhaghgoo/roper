@@ -5,12 +5,14 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.autograd as autograd
 from tqdm import tqdm
 from ray.tune import run, Trainable, sample_from
 
-from dqn import DQN
+from dqn import DQN, update_target
 from loss import TDLoss, StableTDLoss
 from pbuffer import PrioritizedBuffer
+from env import get_env
 
 
 USE_CUDA = torch.cuda.is_available()
@@ -26,10 +28,39 @@ epsilon_decay = 500
 EPSILON_BY_FRAME = lambda frame_idx: epsilon_final + (epsilon_start - epsilon_final) * math.exp(-1. * frame_idx / epsilon_decay)
 
 
-class MyTrainable(Trainable):
+class MyTrainable(object):# Trainable
 
     def _setup(self):
-        self.env, self.val_env = get_env(env_id)
+        self.env_id = "CartPole-v0"
+        self.env, self.val_env = get_env(self.env_id)
+
+        self.config = {
+                "num_trials": 5,
+                "num_frames": 30000,
+                "num_val_trials" : 10,
+                "batch_size" : 32, 
+                "gamma" : 0.99,
+                "method": 'our',
+	            "var": 1.,
+	            "mean": 0.,
+	            "decision_eps": 1.,
+            	"theta" : 1.,
+	            "cnn": False,
+	            "invert_actions" : False,
+	            "return_latent" : 'second_hidden',
+	            "num_val_trials" : 10,
+	            "batch_size" : 32,
+	            "gamma" : 0.99,
+	            "num_trials" : 5,
+	            "USE_CUDA" : True,
+	            "device" : "",
+	            "eps": 1.,
+                "num_workers": 0,
+                "num_gpus": 0,
+                # These params are tuned from a fixed starting value.
+                "lr": 1e-4
+                # These params start off randomly drawn from a set.
+            }
 
     def _train(self):
 
@@ -66,11 +97,13 @@ class MyTrainable(Trainable):
         std_buffer_example_count = []
         noisy_buffer_example_count = []
 
-        for t in range(num_trials):
+        for t in range(config['num_trials']):
 
-            self.training_iteration += 1 
+            print("state: ", state)
 
-            if cnn:
+            #self.training_iteration += 1 
+
+            if config['cnn']:
                 current_model = CnnDQN(self.env.observation_space.shape, self.env.action_space.n)
                 target_model  = CnnDQN(self.env.observation_space.shape, self.env.action_space.n)
             else:
@@ -94,7 +127,7 @@ class MyTrainable(Trainable):
 
             print("trial number: {}".format(t))
 
-            for frame_idx in range(1, num_frames + 1):
+            for frame_idx in range(1, config['num_frames'] + 1):
                 epsilon = EPSILON_BY_FRAME(frame_idx)
                 original_action = current_model.act(state, epsilon)
 
@@ -133,7 +166,7 @@ class MyTrainable(Trainable):
 
                 if len(replay_buffer) > config['batch_size'] and frame_idx % 4 == 0:
                     beta = BETA_BY_FRAME(frame_idx)
-                    loss = td_loss.compute_td_loss(current_model, target_model, beta, replay_buffer, optimizer)
+                    loss = td_loss.compute(current_model, target_model, beta, replay_buffer, optimizer)
                     losses.append(loss.data.tolist())
 
                 if frame_idx % 200 == 0:
@@ -183,6 +216,12 @@ class MyTrainable(Trainable):
                         break
 
         return np.mean(rewards)
+
+
+if __name__ == '__main__':
+	trainable = MyTrainable()
+	trainable._setup()
+	print("train result: ", trainable._train())
 
 
 
@@ -312,7 +351,7 @@ class MyTrainable(Trainable):
 
 #             if len(replay_buffer) > batch_size and frame_idx % 4 == 0:
 #                 beta = BETA_BY_FRAME(frame_idx)
-#                 loss = td_loss.compute_td_loss(current_model, target_model, beta, replay_buffer, optimizer)
+#                 loss = td_loss.compute(current_model, target_model, beta, replay_buffer, optimizer)
 #                 losses.append(loss.data.tolist())
 
 #             if frame_idx % 200 == 0:

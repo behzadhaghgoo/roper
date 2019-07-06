@@ -1,5 +1,9 @@
 import numpy as np
 import torch
+import torch.autograd as autograd
+
+USE_CUDA = torch.cuda.is_available()
+Variable = lambda *args, **kwargs: autograd.Variable(*args, **kwargs).cuda() if USE_CUDA else autograd.Variable(*args, **kwargs)
 
 
 # TODO: Add average over batch / Average over buffer
@@ -20,7 +24,7 @@ class TDLoss():
         self.stored_aug_size = stored_aug_size
 
     def compute(self, cur_model, tar_model, beta, replay_buffer, optimizer):
-        state, action, reward, next_state, done, indices, weights = replay_buffer.sample(batch_size, beta)
+        state, action, reward, next_state, done, indices, weights, state_envs = replay_buffer.sample(self.batch_size, beta)
 
         state      = Variable(torch.FloatTensor(np.float32(state)))
         next_state = Variable(torch.FloatTensor(np.float32(next_state)))

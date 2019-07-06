@@ -2,6 +2,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import torch 
+import torch.autograd as autograd
+
 import random
 import ray
 from ray.tune import run, Trainable, sample_from
